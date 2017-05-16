@@ -35,7 +35,7 @@ Last used protocol is automatically selected if stick is in neutral position.
 
 #### Extra features (if available on aircraft):
 
-- Channel 5: led light, 3 pos. rate on CX-10 and FQ777-124, H7, inverted flight on H101  
+- Channel 5: led light, 3 pos. rate on CX-10 and FQ777-124, H7, inverted flight on H101, takeoff/altHold/land on CX10-WD 
 - Channel 6: flip control  
 - Channel 7: still camera  
 - Channel 8: video camera, pitch trim (FQ777-124)  

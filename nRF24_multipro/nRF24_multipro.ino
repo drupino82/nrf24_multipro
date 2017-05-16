@@ -29,7 +29,7 @@
  */
 
 #include <util/atomic.h>
-#include <EEPROM.h>
+#include <EEPROMex.h>
 #include "iface_nrf24l01.h"
 
 
@@ -37,10 +37,10 @@
 #define PPM_pin   2  // PPM in
 //SPI Comm.pins with nRF24L01
 #define MOSI_pin  3  // MOSI - D3
-#define SCK_pin   4  // SCK  - D4
-#define CE_pin    5  // CE   - D5
+#define SCK_pin   A1 // SCK  - A1     -------4  // SCK  - D4
+#define CE_pin    A2 // CE   - A2     -------5  // CE   - D5
 #define MISO_pin  A0 // MISO - A0
-#define CS_pin    A1 // CS   - A1
+#define CS_pin    4  // CS   - D4     -------A1 // CS   - A1
 
 #define ledPin    13 // LED  - D13
 
@@ -82,8 +82,9 @@ enum chan_order{
 #define PPM_SAFE_THROTTLE 1050 
 #define PPM_MID 1500
 #define PPM_MAX 2000
-#define PPM_MIN_COMMAND 1300
-#define PPM_MAX_COMMAND 1700
+#define PPM_MIN_COMMAND 1250
+#define PPM_MAX_COMMAND 1750
+#define PPM_SWITCH 1550
 #define GET_FLAG(ch, mask) (ppm[ch] > PPM_MAX_COMMAND ? mask : 0)
 #define GET_FLAG_INV(ch, mask) (ppm[ch] < PPM_MIN_COMMAND ? mask : 0)
 
@@ -105,6 +106,10 @@ enum {
     PROTO_YD717,        // Cheerson CX-10 red (older version)/CX11/CX205/CX30, JXD389/390/391/393, SH6057/6043/6044/6046/6047, FY326Q7, WLToys v252 Pro/v343, XinXun X28/X30/X33/X39/X40
     PROTO_FQ777124,     // FQ777-124 pocket drone
     PROTO_E010,         // EAchine E010, NiHui NH-010, JJRC H36 mini
+    PROTO_Q303,
+    PROTO_CX35,
+    PROTO_CX10D,
+    PROTO_CX10WD,       // Cheerson CX-10WD (Wi-Fi FPV with optional RF Transmitter) using protocol Q303
     PROTO_END
 };
 
@@ -114,10 +119,11 @@ enum{
     ee_TXID0,
     ee_TXID1,
     ee_TXID2,
-    ee_TXID3
+    ee_TXID3,
+    ee_TXID4
 };
 
-uint8_t transmitterID[4];
+uint8_t transmitterID[5];
 uint8_t current_protocol;
 static volatile bool ppm_ok = false;
 uint8_t packet[32];
@@ -200,6 +206,12 @@ void loop()
         case PROTO_FQ777124:
             timeout = process_FQ777124();
             break;
+        case PROTO_Q303:
+        case PROTO_CX35:
+        case PROTO_CX10D:
+        case PROTO_CX10WD:
+            timeout = process_Q303();
+            break;
     }
     // updates ppm values out of ISR
     update_ppm();
@@ -208,17 +220,22 @@ void loop()
     {   };
 }
 
-void set_txid(bool renew)
+void set_txid(bool renew)  // Changed as DIY-Multiprotocol Project
 {
-    uint8_t i;
-    for(i=0; i<4; i++)
-        transmitterID[i] = EEPROM.read(ee_TXID0+i);
-    if(renew || (transmitterID[0]==0xFF && transmitterID[1]==0x0FF)) {
-        for(i=0; i<4; i++) {
-            transmitterID[i] = random() & 0xFF;
-            EEPROM.update(ee_TXID0+i, transmitterID[i]); 
-        }            
+    uint8_t i, id;
+    for (i = 0; i < sizeof(transmitterID); i++)
+        transmitterID[i] = EEPROM.read(ee_TXID0 + i);
+    if (renew || (transmitterID[0] == 0xFF && transmitterID[1] == 0xFF)) {
+        id = random() & 0xFF;
+        transmitterID[0] = (id >> 24) & 0xFF;
+        transmitterID[1] = (id >> 16) & 0xFF;
+        transmitterID[2] = (id >>  8) & 0xFF;
+        transmitterID[3] = (id >>  0) & 0xFF;
+        transmitterID[4] = (transmitterID[2] & 0xF0) | (transmitterID[3] & 0x0F);
+        for (i = 0; i < sizeof(transmitterID) - 1; i++) {
+            EEPROM.update(ee_TXID0 + i, transmitterID[i]);
     }
+  }
 }
 
 void selectProtocol()
@@ -303,8 +320,9 @@ void selectProtocol()
     
     // Aileron left
     else if(ppm[AILERON] < PPM_MIN_COMMAND)  
-        current_protocol = PROTO_CX10_GREEN;  // Cheerson CX10(green pcb)... 
-    
+        //current_protocol = PROTO_CX10_GREEN;  // Cheerson CX10(green pcb)... 
+        current_protocol = PROTO_CX10WD;      // Cheerson CX10_WD
+            
     // read last used protocol from eeprom
     else 
         current_protocol = constrain(EEPROM.read(ee_PROTOCOL_ID),0,PROTO_END-1);      
@@ -368,6 +386,13 @@ void init_protocol()
             FQ777124_init();
             FQ777124_bind();
             break;
+        case PROTO_Q303:
+        case PROTO_CX35:
+        case PROTO_CX10D:
+        case PROTO_CX10WD:
+            Q303_init();
+            Q303_bind();
+            break;
     }
 }
 
@@ -418,4 +443,10 @@ void ISR_ppm()
         }
         chan++;
     }
+}
+
+// Channel value is converted to 16bit values
+uint16_t convert_channel_16b(uint8_t num, int16_t out_min, int16_t out_max)
+{
+    return (uint16_t) (map(Servo_data[num], PPM_MIN, PPM_MAX, out_min, out_max));
 }

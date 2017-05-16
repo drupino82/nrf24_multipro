@@ -119,4 +119,9 @@ enum TX_Power {
 #define FLUSH_RX      0xE2
 #define REUSE_TX_PL   0xE3
 
+// XN297 emulation layer
+enum {
+  XN297_UNSCRAMBLED = 0,
+  XN297_SCRAMBLED
+};
 #endif
