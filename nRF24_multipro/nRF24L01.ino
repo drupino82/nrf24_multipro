@@ -37,6 +37,7 @@ void NRF24L01_WriteRegisterMulti(uint8_t address, const uint8_t data[], uint8_t 
 void NRF24L01_Initialize()
 {
     rf_setup = 0x0F;
+    XN297_SetScrambledMode(XN297_SCRAMBLED);
 }
 
 uint8_t NRF24L01_FlushTx()

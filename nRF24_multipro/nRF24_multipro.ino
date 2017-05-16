@@ -47,12 +47,12 @@
 // SPI outputs
 #define MOSI_on PORTD |= _BV(3)  // PD3
 #define MOSI_off PORTD &= ~_BV(3)// PD3
-#define SCK_on PORTD |= _BV(4)   // PD4
-#define SCK_off PORTD &= ~_BV(4) // PD4
-#define CE_on PORTD |= _BV(5)    // PD5
-#define CE_off PORTD &= ~_BV(5)  // PD5
-#define CS_on PORTC |= _BV(1)    // PC1
-#define CS_off PORTC &= ~_BV(1)  // PC1
+#define SCK_on PORTC |= _BV(1)   // PC1     -----PORTD |= _BV(4)   // PD4
+#define SCK_off PORTC &= ~_BV(1) // PC1     -----PORTD &= ~_BV(4) // PD4
+#define CE_on PORTC |= _BV(2)    // PC2     -----PORTD |= _BV(5)    // PD5
+#define CE_off PORTC &= ~_BV(2)  // PC2     -----PORTD &= ~_BV(5)  // PD5
+#define CS_on PORTD |= _BV(4)    // PD4     -----PORTC |= _BV(1)    // PC1
+#define CS_off PORTD &= ~_BV(4)  // PD4     -----PORTC &= ~_BV(1)  // PC1
 // SPI input
 #define  MISO_on (PINC & _BV(0)) // PC0
 
